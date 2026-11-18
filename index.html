@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Programa de sanitización · MSS</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Firebase SDKs (Versión Compat para un solo archivo) -->
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#eef2f1;--card:#fff;--tx:#14232b;--mut:#5d6f77;--bd:#d3dcdb;--ac:#0f7b6c;--acx:#fff;--ok:#1f8a4c;--wn:#b87d00;--bad:#c0392b;--soft:#e2eceb;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a1f;--card:#17252c;--tx:#e6eeee;--mut:#93a6ac;--bd:#2b3d45;--ac:#37b8a5;--acx:#08201c;--ok:#4cc27d;--wn:#e0a823;--bad:#ef7566;--soft:#1f3239;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1a1f;--card:#17252c;--tx:#e6eeee;--mut:#93a6ac;--bd:#2b3d45;--ac:#37b8a5;--acx:#08201c;--ok:#4cc27d;--wn:#e0a823;--bad:#ef7566;--soft:#1f3239;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 Barlow,system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",sans-serif;margin:0;letter-spacing:.2px}
+header{background:var(--ac);color:var(--acx);padding:14px 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+header h1{font-size:26px}header small{opacity:.85;flex:1}
+nav{display:flex;gap:4px;padding:10px 16px 0;border-bottom:1px solid var(--bd);background:var(--card);overflow-x:auto}
+nav button{border:0;background:none;color:var(--mut);font:600 15px Barlow,system-ui,sans-serif;padding:10px 14px;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+nav button.on{color:var(--tx);border-color:var(--ac)}
+main{padding:18px 16px 40px;max-width:1180px;margin:auto}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.grow{flex:1}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+.st{background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:14px;border-left:5px solid var(--ac)}
+.st b{display:block;font:700 34px "Barlow Condensed",sans-serif}.st span{color:var(--mut)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:16px;margin-bottom:16px}
+.bars{display:flex;gap:10px;align-items:flex-end;height:140px;margin-top:10px}
+.bar{flex:1;text-align:center;font-size:12px;color:var(--mut);display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.bar i{display:block;background:var(--ac);border-radius:3px 3px 0 0;min-height:2px}
+.tw{overflow-x:auto;background:var(--card);border:1px solid var(--bd);border-radius:6px}
+table{border-collapse:collapse;width:100%;min-width:860px}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--bd);vertical-align:top}
+th{background:var(--soft);font-weight:600;font-size:13px;white-space:nowrap}
+tr.g td{background:var(--soft);font:700 17px "Barlow Condensed",sans-serif}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;background:var(--soft);font-size:12px;font-weight:600}
+.tag.Diaria{background:var(--ac);color:var(--acx)}
+button,select,input,textarea{font:inherit;color:var(--tx)}
+.b{background:var(--ac);color:var(--acx);border:0;border-radius:5px;padding:8px 14px;font-weight:600;cursor:pointer}
+.b.s{background:none;color:var(--tx);border:1px solid var(--bd)}
+.b.x{background:none;color:var(--bad);border:1px solid var(--bd)}
+.b.m{padding:3px 9px;font-size:13px}
+input,select,textarea{background:var(--card);border:1px solid var(--bd);border-radius:5px;padding:7px 9px;width:100%}
+.row input,.row select{width:auto}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--ac)}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 3px}
+dialog{border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);width:min(560px,94vw);padding:20px}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.ex{display:grid;grid-template-columns:28px 1fr 90px 28px auto;gap:10px;align-items:start;padding:10px 0;border-bottom:1px solid var(--bd)}
+.ex small{display:block;color:var(--mut)}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.wn{color:var(--wn)}
+.empty{padding:26px;text-align:center;color:var(--mut)}
+.tag.c-Crítica{background:var(--bad);color:var(--acx)}.tag.c-Alta{background:var(--wn);color:var(--acx)}.tag.c-Media{background:var(--soft)}.tag.c-Baja{background:none;border:1px solid var(--bd);color:var(--mut)}
+.pl{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}.pl .card{margin:0}
+.pc{border-left:5px solid var(--bd)}.pc.c-b-Crítica{border-left-color:var(--bad)}.pc.c-b-Alta{border-left-color:var(--wn)}.pc.c-b-Media{border-left-color:var(--ac)}
+.pc ol{padding-left:20px;margin:10px 0 14px}.pc li{margin-bottom:4px}
+.tag.c-ok{background:var(--ok);color:var(--acx)}
+header select,header input{width:auto;max-width:190px}
+.ex2{display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--bd)}.ex2>div:first-child{flex:1;min-width:240px}.ex2 small{display:block;color:var(--mut)}
+.act{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}.act input{width:180px}
+.gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:calc(20px + env(safe-area-inset-top,0px)) 20px calc(20px + env(safe-area-inset-bottom,0px));overflow:auto}.gate[hidden]{display:none}.gate .card{width:min(400px,100%);margin:0}.err{color:var(--bad);min-height:1.3em;margin-top:8px}
+@media(max-width:560px){.ex{grid-template-columns:28px 1fr 28px}.ex>:nth-child(3){grid-column:2}.ex>:last-child{grid-column:2}}
+@media print{header button,nav,.row,td:last-child,th:last-child{display:none}}
+</style>
+</head>
+<body>
+<header><h1>Programa de sanitización</h1><small>Gestión de limpieza y desinfección · Industria alimentaria</small><span id="who"></span><button class="b s" id="pw" style="color:inherit;border-color:currentColor">Contraseña</button><button class="b s" id="out" style="color:inherit;border-color:currentColor">Salir</button><button class="b s" style="color:inherit;border-color:currentColor" onclick="window.print()">Imprimir</button></header>
+<nav id="nav"></nav>
+<main id="v"></main><div id="gate" class="gate"></div>
+<dialog id="dlg"><h2 id="dt" style="font-size:24px"></h2><div id="df"></div><div class="row" style="margin:18px 0 0;justify-content:flex-end"><button class="b s" id="dc">Cancelar</button><button class="b" id="ds">Guardar</button></div></dialog>
+<script>
+const FREQ=['Diaria','Semanal','Quincenal','Mensual','Trimestral','Anual'],DOW=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const AREAS=['Recepción','Producción','Empaque','Almacén','Cámaras frías','Sanitarios','Exteriores'];
+const seed=[
+['Producción','Superficies de contacto (mesas, bandas)','Diaria',1,'Detergente alcalino + sanitizante cuaternario','200 ppm QAC','Limpieza en seco, enjuague, detergente, enjuague, sanitizado','Sanitización','ATP < 150 RLU'],
+['Producción','Utensilios y cuchillos','Diaria',1,'Detergente alcalino + sanitizante','200 ppm QAC','Lavado en 3 pasos y sanitizado por inmersión','Sanitización','Inspección visual'],
+['Producción','Pisos y drenajes','Diaria',1,'Detergente clorado + desinfectante','200 ppm cloro','Retirar residuos, espuma, tallado, enjuague','Sanitización','Inspección visual'],
+['Empaque','Selladoras y mesas de empaque','Diaria',1,'Sanitizante cuaternario','200 ppm QAC','Limpieza en seco y sanitizado','Operador de línea','ATP < 150 RLU'],
+['Sanitarios','Sanitarios y lavamanos','Diaria',1,'Desinfectante clorado','200 ppm cloro','Limpieza, desinfección y reposición de insumos','Intendencia','Lista de verificación'],
+['Producción','Paredes y puertas','Semanal',3,'Detergente alcalino','2 %','Espuma, contacto 10 min, tallado y enjuague','Sanitización','Inspección visual'],
+['Almacén','Pisos, racks y tarimas','Semanal',5,'Detergente neutro','1 %','Barrido, trapeado y desinfección','Almacén','Inspección visual'],
+['Producción','Equipo desarmable (molinos, mezcladoras)','Semanal',6,'Detergente alcalino + sanitizante','200 ppm QAC','Desarme completo, lavado COP y sanitizado','Sanitización','ATP + hisopado micro'],
+['Cámaras frías','Evaporadores, pisos y paredes','Quincenal',2,'Sanitizante sin enjuague','200 ppm QAC','Retirar producto, limpiar y sanitizar','Sanitización','Inspección visual'],
+['Producción','Techos, lámparas y tuberías','Mensual',0,'Detergente neutro','1 %','Limpieza en seco y paño húmedo con sanitizante','Mantenimiento','Inspección visual'],
+['Exteriores','Contenedores de basura y andenes','Mensual',2,'Desinfectante clorado','500 ppm cloro','Lavado a presión y desinfección','Intendencia','Inspección visual'],
+['Producción','Limpieza profunda de línea','Trimestral',0,'Detergente ácido / alcalino','Según ficha técnica','Desincrustación y paro programado','Sanitización','Micro + ATP'],
+['Producción','Verificación y calibración de dosificadores','Anual',1,'No aplica','—','Calibración con proveedor de químicos','Calidad','Certificado']];
+let S;try{S=JSON.parse(localStorage.getItem('mss2'))}catch(e){}
+if(!S)S={tasks:seed.map((a,i)=>({id:'t'+i,area:a[0],item:a[1],freq:a[2],dow:a[3],chem:a[4],conc:a[5],method:a[6],resp:a[7],ver:a[8]})),recs:{},devs:[],n:100};
+const CR=['Crítica','Alta','Media','Baja'];
+if(!S.plans){S.plans=[
+{id:'p1',name:'Limpieza y sanitizado de superficies de contacto',area:'Producción',crit:'Crítica',steps:'Retirar residuos sólidos en seco\nEnjuagar con agua potable\nAplicar detergente y tallar\nEnjuagar hasta eliminar el detergente\nAplicar sanitizante y respetar el tiempo de contacto\nVerificar (visual o ATP) antes de liberar la línea'},
+{id:'p2',name:'Limpieza de pisos, paredes y drenajes',area:'Producción',crit:'Media',steps:'Retirar residuos y barrer en seco\nAplicar detergente con espuma o trapeador\nTallar y dejar actuar 10 minutos\nEnjuagar dirigiendo el agua al drenaje\nAplicar desinfectante'},
+{id:'p3',name:'Desarme y limpieza de equipo (COP)',area:'Producción',crit:'Crítica',steps:'Bloquear la energía del equipo (LOTO)\nDesarmar las piezas según el manual\nLavar las piezas en tina, nunca en el piso\nEnjuagar y sanitizar\nArmar, sanitizar de nuevo y verificar con ATP'},
+{id:'p4',name:'Sanitarios y áreas de servicio',area:'Sanitarios',crit:'Alta',steps:'Retirar la basura\nLimpiar lavamanos y sanitarios con detergente\nDesinfectar superficies de alto contacto\nReponer jabón, papel y gel antibacterial'}];
+const m={t0:'p1',t1:'p1',t3:'p1',t2:'p2',t6:'p2',t4:'p4',t7:'p3'};S.tasks.forEach(t=>t.plan=m[t.id]||'')}
+const P=id=>S.plans.find(p=>p.id===id),steps=p=>(p.steps||'').split('\n').map(s=>s.trim()).filter(Boolean);
+const critTag=t=>{const p=P(t.plan);return p?` <span class="tag c-${p.crit}">${p.crit}</span>`:''};
+const planBlock=(t,o)=>{const p=P(t.plan);return p?`<details ${o?'open':''} style="margin-top:6px"><summary style="cursor:pointer;color:var(--ac);font-weight:600">${e(p.name)}${critTag(t)}</summary><ol style="margin:6px 0 0;padding-left:20px">${steps(p).map(s=>`<li>${e(s)}</li>`).join('')}</ol></details>`:''};
+const planTag=t=>{const p=P(t.plan);return p?`<small style="display:block;color:var(--mut)">${e(p.name)}${critTag(t)}</small>`:''};
+S.plans.forEach(p=>{if(!p.freq){const t=S.tasks.find(t=>t.plan===p.id);p.freq=t?t.freq:'Diaria';p.dow=t?t.dow:1}});
+const pf=[['name','Nombre del plan'],['area','Área',AREAS.map(a=>[a,a])],['crit','Criticidad de la limpieza',CR.map(a=>[a,a])],['freq','Frecuencia del plan',FREQ.map(a=>[a,a])],['dow','Día de la semana (aplica si no es diaria)',DOW.map((a,i)=>[i,a])],['steps','Instrucciones (una por línea)',0,6]];
+Object.values(S.recs).forEach(r=>{if(r.vf===true){r.vf='ok';r.vby='—'}});
+const inh=o=>{const p=P(o.plan);if(p){o.freq=p.freq;o.dow=p.dow}};
+const fq=p=>(p.freq||'Diaria')+(p.freq&&p.freq!=='Diaria'?' ('+DOW[p.dow]+')':'');
+const save=()=>sync();
+const $=s=>document.querySelector(s),e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const parse=s=>{const[a,b,c]=s.split('-');return new Date(+a,b-1,+c)};
+function due(t,d){const w=d.getDay(),n=d.getDate(),m=d.getMonth(),f=t.freq;if(f==='Diaria')return true;if(w!==+t.dow)return false;
+if(f==='Semanal')return true;if(f==='Quincenal')return n<=7||(n>=15&&n<=21);if(f==='Mensual')return n<=7;if(f==='Trimestral')return n<=7&&m%3===0;return n<=7&&m===0}
+const dueList=d=>S.tasks.filter(t=>due(t,d));
+const done=(t,ds)=>S.recs[t.id+'|'+ds]?.done;
+let tab='res',fF='',fA='',day=iso(new Date());
+const ROLES={adm:['Administrador','res,mss,pln,reg,dev,usr,aud'],ops:['Operaciones (limpieza)','ops,pln'],cal:['Calidad (verificación)','cal,dev'],ins:['Inspector (liberación)','ins,res']};
+const TN={res:'Resumen',mss:'Master Sanitation Schedule',pln:'Planes',reg:'Seguimiento',dev:'Desviaciones',ops:'Mis limpiezas',cal:'Por verificar',ins:'Por liberar',usr:'Usuarios',aud:'Trazabilidad'};
+let role='adm',me='',auth=null,DB=null,UID='',ACC={},canE=false;try{const u=JSON.parse(localStorage.getItem('mss_u'));if(u&&ROLES[u.role]){role=u.role;me=u.me||''}}catch(e){}
+const sv=()=>{try{localStorage.setItem('mss_u',JSON.stringify({role,me}))}catch(e){}};
+if(!ROLES[role][1].split(',').includes(tab))tab=ROLES[role][1].split(',')[0];
+function stats(d){const l=dueList(d),ds=iso(d);return[l.filter(t=>done(t,ds)).length,l.length]}
+const pct=(a,b)=>b?Math.round(100*a/b):100;
+function render(){
+$('#nav').innerHTML=ROLES[role][1].split(',').map(k=>`<button class="${k===tab?'on':''}" data-t="${k}">${TN[k]}</button>`).join('');
+$('#v').innerHTML={res:vRes,mss:vMss,pln:vPln,reg:vReg,dev:vDev,ops:vOps,cal:vCal,ins:vIns,usr:vUsr,aud:vAud}[tab]()}
+function vRes(){
+const td=new Date(),[a,b]=stats(td);let ta=0,tb=0,bars='';
+for(let i=6;i>=0;i--){const d=new Date();d.setDate(td.getDate()-i);const[x,y]=stats(d),p=pct(x,y);if(i>0){ta+=x;tb+=y}
+bars+=`<div class="bar">${p}%<i style="height:${p*.95}px;${p<90?'background:var(--wn)':''}"></i>${DOW[d.getDay()]} ${d.getDate()}</div>`}
+const open=S.devs.filter(x=>x.st!=='Cerrada').length;
+return `<div class="stats"><div class="st"><b>${a}/${b}</b><span>Tareas de hoy completadas</span></div>
+<div class="st"><b>${pct(ta,tb)}%</b><span>Cumplimiento últimos 6 días</span></div>
+<div class="st" style="border-color:${open?'var(--bad)':'var(--ok)'}"><b>${open}</b><span>Desviaciones abiertas</span></div>
+<div class="st"><b>${S.tasks.length}</b><span>Tareas en el MSS</span></div></div>
+<div class="card"><h3>Flujo de hoy: realizar → verificar → liberar</h3><div style="margin-top:8px">${pipe()}</div></div><div class="card"><h3>Cumplimiento diario, últimos 7 días</h3><div class="bars">${bars}</div></div>
+<div class="card"><h3>Pendientes de hoy</h3>${dueList(td).filter(t=>!done(t,iso(td))).map(t=>`<div style="padding:6px 0;border-bottom:1px solid var(--bd)"><b>${e(t.item)}</b> <span class="tag">${e(t.area)}</span>${critTag(t)}</div>`).join('')||'<div class="empty">Todo al día. No hay tareas pendientes hoy.</div>'}</div>`}
+function vMss(){
+const L=S.tasks.filter(t=>(!fF||t.freq===fF)&&(!fA||t.area===fA));let h='';
+for(const f of FREQ){const g=L.filter(t=>t.freq===f);if(!g.length)continue;h+=`<tr class="g"><td colspan="8">${f} (${g.length})</td></tr>`+g.map(t=>`<tr><td>${e(t.area)}</td><td><b>${e(t.item)}</b>${planTag(t)}</td><td>${f==='Diaria'?'Todos':DOW[t.dow]}</td><td>${e(t.chem)}<small style="display:block;color:var(--mut)">${e(t.conc)}</small></td><td>${e(t.method)}</td><td>${e(t.resp)}</td><td>${e(t.ver)}</td><td style="white-space:nowrap"><button class="b s m" data-ed="${t.id}">Editar</button> <button class="b x m" data-del="${t.id}">Quitar</button></td></tr>`).join('')}
+return `<div class="row"><select data-ff><option value="">Todas las frecuencias</option>${FREQ.map(f=>`<option ${f===fF?'selected':''}>${f}</option>`).join('')}</select>
+<select data-fa><option value="">Todas las áreas</option>${AREAS.map(f=>`<option ${f===fA?'selected':''}>${f}</option>`).join('')}</select><span class="grow"></span><button class="b" data-new>Agregar tarea</button></div>
+<div class="tw"><table><thead><tr><th>Área</th><th>Tarea</th><th>Día</th><th>Químico y concentración</th><th>Método</th><th>Responsable</th><th>Verificación</th><th></th></tr></thead><tbody>${h||'<tr><td colspan="8" class="empty">Sin tareas con este filtro. Agrega una con “Agregar tarea”.</td></tr>'}</tbody></table></div>`}
+function vDev(){
+return `<div class="row"><span class="grow"></span><button class="b" data-dv="">Registrar desviación</button></div><div class="tw"><table><thead><tr><th>Fecha</th><th>Tarea / área</th><th>Hallazgo</th><th>Acción correctiva</th><th>Estado</th><th></th></tr></thead><tbody>${S.devs.map(x=>`<tr><td>${e(x.date)}</td><td>${e(x.task)}</td><td>${e(x.what)}</td><td>${e(x.fix)}</td><td class="${x.st==='Cerrada'?'ok':'bad'}"><b>${e(x.st)}</b></td><td style="white-space:nowrap"><button class="b s m" data-tg="${x.id}">${x.st==='Cerrada'?'Reabrir':'Cerrar'}</button> ${role==='adm'?`<button class="b x m" data-dd="${x.id}">Borrar</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Sin desviaciones. Registra una cuando una limpieza falle la verificación.</td></tr>'}</tbody></table></div>`}
+function vPln(){
+const L=[...S.plans].sort((a,b)=>CR.indexOf(a.crit)-CR.indexOf(b.crit));
+return `<div class="row"><span class="grow" style="color:var(--mut)">Crítica: contacto directo con el alimento · Alta: riesgo de contaminación cruzada · Media: ambiente de producción · Baja: áreas generales. Asigna cada plan a las tareas del MSS.</span>${role==='adm'?'<button class="b" data-np>Agregar plan</button>':''}</div><div class="pl">${L.map(p=>`<div class="card pc c-b-${p.crit}"><div class="row" style="margin:0 0 4px"><h3 class="grow" style="font-size:21px">${e(p.name)}</h3><span class="tag c-${p.crit}">${p.crit}</span></div><small style="color:var(--mut)">${e(p.area)} · <span class="tag ${p.freq||'Diaria'}">${fq(p)}</span> · ${S.tasks.filter(t=>t.plan===p.id).length} tarea(s) en el MSS</small><ol>${steps(p).map(s=>`<li>${e(s)}</li>`).join('')}</ol>${role==='adm'?`<button class="b s m" data-ep="${p.id}">Editar</button> <button class="b x m" data-dp="${p.id}">Borrar</button>`:''}</div>`).join('')||'<div class="empty" style="grid-column:1/-1">Aún no hay planes. Crea uno con “Agregar plan”.</div>'}</div>`}
+const R=(t,ds)=>S.recs[t.id+'|'+ds]||{},stOf=r=>r.rel?'Liberada':r.vf==='ok'?'Verificada':r.done?'Realizada':r.flag?'Repetir':'Pendiente';
+const SC={Pendiente:'Baja',Repetir:'Crítica',Realizada:'Media',Verificada:'Alta',Liberada:'ok'},chip=s=>`<span class="tag c-${SC[s]}">${s}</span>`;
+const cr=t=>{const p=P(t.plan);return p?CR.indexOf(p.crit):4},LD=ds=>dueList(parse(ds)).sort((a,b)=>cr(a)-cr(b));
+const who=()=>auth?auth.name+' ('+auth.user+')':'—',now=()=>new Date().toTimeString().slice(0,5);
+const trail=r=>[r.done&&`Realizó: ${r.by||''} ${r.dt||''}`,r.vf&&`Verificó: ${r.vby||''} ${r.vdt||''}${r.vn?' · '+r.vn:''}`,r.rel&&`Liberó: ${r.rby||''} ${r.rdt||''}`].filter(Boolean).map(x=>`<small>${e(x)}</small>`).join('');
+const row=(t,ds,b)=>{const r=R(t,ds);return `<div class="ex2"><div><b>${e(t.item)}</b> <span class="tag">${e(t.area)}</span>${critTag(t)} ${chip(stOf(r))}<small>${e(t.chem)} · ${e(t.conc)}</small>${r.flag?`<small class="bad">${e(r.flag)}</small>`:''}${trail(r)}${b[0]}</div><div class="act">${b[1]}</div></div>`};
+const sec=(t,a,m)=>`<div class="card"><h3 style="margin-bottom:6px">${t} (${a.length})</h3>${a.join('')||`<div class="empty">${m||'Sin elementos.'}</div>`}</div>`;
+const dateRow=(ds,m)=>`<div class="row"><input type="date" value="${ds}" data-day><span class="grow"></span><span style="color:var(--mut)">${m}</span></div>`;
+const pipe=()=>{const ds=iso(new Date()),c={};LD(ds).forEach(t=>{const s=stOf(R(t,ds));c[s]=(c[s]||0)+1});return ['Pendiente','Repetir','Realizada','Verificada','Liberada'].map(s=>`<span style="margin-right:20px;white-space:nowrap">${chip(s)} <b style="font:700 24px 'Barlow Condensed',sans-serif">${c[s]||0}</b></span>`).join('')};
+function vOps(){const ds=iso(new Date()),L=LD(ds),p=L.filter(t=>!R(t,ds).done),d=L.filter(t=>R(t,ds).done);
+return `<div class="row"><b>${d.length} de ${L.length} limpiezas realizadas hoy</b></div>`+sec('Por realizar',p.map(t=>row(t,ds,[planBlock(t,1),`<button class="b" data-ac="done" data-id="${t.id}">Marcar realizada</button><button class="b x m" data-dv="${t.id}">Reportar problema</button>`])),'No tienes limpiezas pendientes.')+sec('Realizadas',d.map(t=>{const r=R(t,ds);return row(t,ds,['',r.vf==='ok'||r.rel?'':`<button class="b s m" data-ac="undo" data-id="${t.id}">Deshacer</button>`])}),'Aún no has marcado ninguna.')}
+function vCal(){const ds=day,L=LD(ds),S1=s=>L.filter(t=>stOf(R(t,ds))===s);
+return dateRow(ds,`${S1('Pendiente').length+S1('Repetir').length} aún sin realizar por operaciones`)+sec('Por verificar',S1('Realizada').map(t=>row(t,ds,[`<small>Criterio de verificación: ${e(t.ver)}</small>`,`<input data-note="${t.id}" placeholder="Lectura u observación"><button class="b" data-ac="ok" data-id="${t.id}">Conforme</button><button class="b x" data-ac="nc" data-id="${t.id}">No conforme</button>`])),'No hay limpiezas esperando verificación.')+sec('Verificadas',[...S1('Verificada'),...S1('Liberada')].map(t=>row(t,ds,['',''])))}
+function vIns(){const ds=day,L=LD(ds),S1=s=>L.filter(t=>stOf(R(t,ds))===s),bl=L.filter(t=>cr(t)===0&&stOf(R(t,ds))!=='Liberada').length;
+return dateRow(ds,`${bl} limpiezas críticas sin liberar`)+sec('Por liberar',S1('Verificada').map(t=>row(t,ds,['',`<input data-note="${t.id}" placeholder="Motivo si rechaza"><button class="b" data-ac="rel" data-id="${t.id}">Liberar</button><button class="b x" data-ac="rej" data-id="${t.id}">Rechazar</button>`])),'No hay limpiezas verificadas pendientes de liberar.')+sec('Liberadas',S1('Liberada').map(t=>row(t,ds,['',''])))}
+function vReg(){const ds=day,L=LD(ds);
+return dateRow(ds,`${L.filter(t=>R(t,ds).rel).length} de ${L.length} liberadas`)+`<div class="tw"><table><thead><tr><th>Tarea</th><th>Criticidad</th><th>Estado</th><th>Realizó</th><th>Verificó</th><th>Liberó</th><th></th></tr></thead><tbody>${L.map(t=>{const r=R(t,ds),p=P(t.plan);return `<tr><td><b>${e(t.item)}</b><small style="display:block;color:var(--mut)">${e(t.area)}</small></td><td>${p?`<span class="tag c-${p.crit}">${p.crit}</span>`:'—'}</td><td>${chip(stOf(r))}${r.flag?`<small class="bad" style="display:block">${e(r.flag)}</small>`:''}</td><td>${r.done?e(r.by)+' '+(r.dt||''):'—'}</td><td>${r.vf?e(r.vby)+' '+(r.vdt||'')+(r.vn?'<small style="display:block">'+e(r.vn)+'</small>':''):'—'}</td><td>${r.rel?e(r.rby)+' '+(r.rdt||''):'—'}</td><td><button class="b x m" data-ac="reset" data-id="${t.id}">Reiniciar</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sin tareas programadas este día.</td></tr>'}</tbody></table></div>`}
+let cb;
+function form(title,fields,val,fn){$('#dt').textContent=title;
+$('#df').innerHTML=fields.map(f=>`<label>${f[1]}</label>`+(f[2]?`<select id="f-${f[0]}">${f[2].map(o=>`<option value="${e(o[0])}" ${String(o[0])===String(val[f[0]])?'selected':''}>${e(o[1])}</option>`).join('')}</select>`:f[3]?`<textarea id="f-${f[0]}" rows="${f[3]>1?f[3]:2}">${e(val[f[0]])}</textarea>`:`<input id="f-${f[0]}" type="${/^pw/.test(f[0])?'password':'text'}" value="${e(val[f[0]])}">`)).join('');
+cb=()=>{const o={};fields.forEach(f=>o[f[0]]=$('#f-'+f[0]).value);fn(o)};$('#dlg').showModal()}
+$('#ds').onclick=()=>{cb();$('#dlg').close()};$('#dc').onclick=()=>$('#dlg').close();
+const tf=()=>[['area','Área',AREAS.map(a=>[a,a])],['item','Tarea o equipo'],['freq','Frecuencia (si eliges un plan, se toma del plan)',FREQ.map(a=>[a,a])],['dow','Día de la semana (aplica si no es diaria)',DOW.map((a,i)=>[i,a])],['chem','Producto químico'],['conc','Concentración'],['method','Método / procedimiento',0,1],['resp','Responsable'],['ver','Verificación'],['plan','Plan de sanitización',[['','Sin plan'],...S.plans.map(p=>[p.id,p.name+' ('+p.crit+')'])]]];
+document.addEventListener('click',ev=>{const t=ev.target.closest('button');if(!t)return;const d=t.dataset;
+if(d.t){tab=d.t;return render()}
+if(d.new!==undefined)form('Nueva tarea',tf(),{area:AREAS[0],freq:'Diaria',dow:1},o=>{if(!o.item.trim())return;inh(o);S.tasks.push({...o,id:'t'+S.n++});save();render()});
+if(d.ed){const k=S.tasks.find(x=>x.id===d.ed);form('Editar tarea',tf(),k,o=>{inh(o);Object.assign(k,o);save();render()})}
+if(d.del&&confirm('¿Quitar esta tarea del MSS?')){S.tasks=S.tasks.filter(x=>x.id!==d.del);save();render()}
+if(d.dv!==undefined){const k=S.tasks.find(x=>x.id===d.dv);form('Registrar desviación',[['task','Tarea / área'],['what','Hallazgo',0,1],['fix','Acción correctiva',0,1]],{task:k?k.item+' · '+k.area:''},o=>{S.devs.unshift({...o,id:'d'+S.n++,date:tab==='reg'?day:iso(new Date()),st:'Abierta'});save();if(ROLES[role][1].includes('dev'))tab='dev';render()})}
+if(d.tg){const k=S.devs.find(x=>x.id===d.tg);k.st=k.st==='Cerrada'?'Abierta':'Cerrada';save();render()}
+if(d.ac){const ds=role==='ops'?iso(new Date()):day,k=d.id+'|'+ds,r=S.recs[k]=S.recs[k]||{},t=S.tasks.find(x=>x.id===d.id),nt=((document.querySelector('[data-note="'+d.id+'"]')||{}).value||'').trim(),a=d.ac;
+if(a==='done')Object.assign(r,{done:true,by:who(),dt:now(),flag:''});
+else if(a==='undo')r.done=false;
+else if(a==='ok')Object.assign(r,{vf:'ok',vby:who(),vdt:now(),vn:nt});
+else if(a==='nc'){S.devs.unshift({id:'d'+S.n++,date:ds,task:t.item+' · '+t.area,what:'Verificación no conforme'+(nt?': '+nt:''),fix:'Repetir la limpieza y verificar de nuevo',st:'Abierta'});Object.assign(r,{done:false,vf:'',flag:'No conforme en verificación'+(nt?': '+nt:'')})}
+else if(a==='rel')Object.assign(r,{rel:true,rby:who(),rdt:now()});
+else if(a==='rej')Object.assign(r,{done:false,vf:'',rel:false,flag:'Rechazada por inspector'+(nt?': '+nt:'')});
+else if(a==='reset')delete S.recs[k];
+save();render()}
+if(d.np!==undefined)form('Nuevo plan',pf,{area:AREAS[0],crit:'Media',freq:'Diaria',dow:1},o=>{if(!o.name.trim())return;S.plans.push({...o,id:'p'+S.n++});save();render()});
+if(d.ep){const k=P(d.ep);form('Editar plan',pf,k,o=>{const ch=o.freq!==k.freq||String(o.dow)!==String(k.dow);Object.assign(k,o);if(ch)S.tasks.forEach(t=>{if(t.plan===k.id){t.freq=k.freq;t.dow=k.dow}});save();render()})}
+if(d.dp&&confirm('¿Borrar este plan? Las tareas asociadas quedarán sin plan.')){S.plans=S.plans.filter(x=>x.id!==d.dp);S.tasks.forEach(t=>{if(t.plan===d.dp)t.plan=''});save();render()}
+if(d.dd&&confirm('¿Borrar esta desviación?')){S.devs=S.devs.filter(x=>x.id!==d.dd);save();render()}});
+document.addEventListener('change',ev=>{const t=ev.target,d=t.dataset,k=x=>S.recs[x+'|'+day]=S.recs[x+'|'+day]||{};
+if(d.ff!==undefined){fF=t.value;render()}if(d.fa!==undefined){fA=t.value;render()}if(d.day!==undefined&&t.value){day=t.value;render()}
+if(d.do){k(d.do).done=t.checked;save();render()}if(d.vf){k(d.vf).vf=t.checked;save()}if(d.by){k(d.by).by=t.value;save()}});
+/* ===== Cuentas, sincronización y trazabilidad ===== */
+const enc=new TextEncoder(),hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''),rnd=()=>hex(crypto.getRandomValues(new Uint8Array(8)));
+const hp=async(pw,salt)=>{const k=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveBits']);return hex(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:enc.encode(salt),iterations:150000},k,256))};
+const sha=async s=>hex(await crypto.subtle.digest('SHA-256',enc.encode(s)));
+const snap={cfg:'',recs:{},devs:{}},chain={};let Q=Promise.resolve(),AUD=[],pend=false,audMsg='',gateMode='load',af='';
+Object.defineProperty(S,'n',{get(){return Date.now()*10+Math.floor(Math.random()*10)},set(v){}});
+const werr=x=>alert('No se pudo guardar: '+(x&&x.message||x)+'.');
+const clip=x=>(typeof x==='string'?x:JSON.stringify(x||'')).slice(0,1500);
+async function chainFor(u){if(chain[u])return chain[u];let c={seq:0,hash:''};try{const q=await DB.collection('audit').where('user','==',u).orderBy('seq','desc').limit(1).get();if(q.size){const d=q.docs[0].data();c={seq:d.seq,hash:d.hash}}}catch(x){}return chain[u]=c}
+function aud(act,ent,key,b,a,u,r){const o={ts:new Date().toISOString(),user:u||(auth&&auth.user)||'?',role:r||role,uid:UID,act,ent,key:String(key||''),before:clip(b),after:clip(a)};
+Q=Q.then(async()=>{try{const c=await chainFor(o.user);o.seq=++c.seq;o.prev=c.hash;o.hash=await sha([o.prev,o.seq,o.ts,o.user,o.act,o.ent,o.key,o.before,o.after].join('|'));c.hash=o.hash;await DB.collection('audit').doc(o.ts.replace(/\D/g,'')+'_'+rnd()).set(o)}catch(x){console.error(x)}})}
+const byId=a=>Object.fromEntries((a||[]).map(x=>[x.id,x])),rk=k=>k.replace('|','_');
+function dif(ent,oa,na){const o=byId(oa),n=byId(na);for(const id in n){if(!o[id])aud(ent+'.crear',ent,id,'',n[id]);else if(JSON.stringify(o[id])!==JSON.stringify(n[id]))aud(ent+'.editar',ent,id,o[id],n[id])}for(const id in o)if(!n[id])aud(ent+'.borrar',ent,id,o[id],'')}
+const ract=(b,a)=>!a?'reiniciar':a.rel&&!(b&&b.rel)?'liberar':b&&b.rel&&!a.rel?'rechazar':a.vf==='ok'&&!(b&&b.vf==='ok')?'verificar_conforme':a.done&&!(b&&b.done)?'realizar':b&&b.done&&!a.done?(a.flag?'devolver':'deshacer'):'editar';
+function sync(){if(!DB||!auth)return;
+const cs=JSON.stringify({tasks:S.tasks,plans:S.plans});
+if(cs!==snap.cfg){const old=snap.cfg?JSON.parse(snap.cfg):{};dif('tarea',old.tasks,S.tasks);dif('plan',old.plans,S.plans);snap.cfg=cs;DB.doc('cfg/main').set(JSON.parse(cs)).catch(werr)}
+for(const k in S.recs){const s=JSON.stringify(S.recs[k]);if(s!==snap.recs[k]){const b=snap.recs[k]?JSON.parse(snap.recs[k]):null;aud('registro.'+ract(b,S.recs[k]),'registro',k,b,S.recs[k]);snap.recs[k]=s;DB.doc('recs/'+rk(k)).set({k,r:JSON.parse(s)}).catch(werr)}}
+for(const k in snap.recs)if(!S.recs[k]){aud('registro.reiniciar','registro',k,snap.recs[k],'');delete snap.recs[k];DB.doc('recs/'+rk(k)).delete().catch(werr)}
+const dv=byId(S.devs);for(const id in dv){const s=JSON.stringify(dv[id]);if(s!==snap.devs[id]){const b=snap.devs[id]?JSON.parse(snap.devs[id]):'';aud(b?'desviacion.editar':'desviacion.crear','desviacion',id,b,dv[id]);snap.devs[id]=s;DB.doc('devs/'+id).set(JSON.parse(s)).catch(werr)}}
+for(const id in snap.devs)if(!dv[id]){aud('desviacion.borrar','desviacion',id,snap.devs[id],'');delete snap.devs[id];DB.doc('devs/'+id).delete().catch(werr)}}
+const busy=()=>$('#dlg').open||(document.activeElement&&document.activeElement.matches&&document.activeElement.matches('#v input,#v textarea'));
+const rr=()=>{if(!auth)return;if(busy())pend=true;else render()};
+addEventListener('focusout',()=>setTimeout(()=>{if(pend&&!busy()){pend=false;render()}},50));
+function gate(m){const g=$('#gate');gateMode=m;if(auth){g.hidden=true;return}g.hidden=false;
+const H=t=>`<div class="card"><h1 style="font-size:30px">Programa de sanitización</h1><p style="color:var(--mut)">${t}</p>`;
+if(m==='login'||m==='boot'){const b=m==='boot';
+g.innerHTML=H(b?'Crea la cuenta del administrador del programa (una sola vez).':'Inicia sesión con tu cuenta.')+`${b?'<label>Nombre completo</label><input id="g-n">':''}<label>Usuario</label><input id="g-u" autocomplete="username"><label>Contraseña${b?' (mínimo 8 caracteres)':''}</label><input id="g-p" type="password" autocomplete="${b?'new':'current'}-password"><div class="err" id="g-e"></div><button class="b" id="g-b" style="width:100%;margin-top:10px">${b?'Crear administrador':'Entrar'}</button></div>`;
+$('#g-b').onclick=()=>b?boot_():login();$('#g-p').onkeydown=ev=>{if(ev.key==='Enter')$('#g-b').click()}}
+else g.innerHTML=H(m==='load'?'Conectando…':m)+'</div>'}
+async function login(){const u=$('#g-u').value.trim().toLowerCase(),p=$('#g-p').value,E=$('#g-e'),a=ACC[u];E.textContent='';
+if(!u||!p)return E.textContent='Escribe usuario y contraseña.';
+if(a&&a.lock&&a.lock>Date.now())return E.textContent='Cuenta bloqueada temporalmente por intentos fallidos. Intenta más tarde.';
+const ok=a&&a.active&&await hp(p,a.salt)===a.hash;
+if(!ok){aud('sesion.fallida','auth',u,'','',u,a?a.role:'');if(a){const f=(a.fails||0)+1;DB.doc('accounts/'+u).update({fails:f,lock:f>=5?Date.now()+9e5:0}).catch(()=>{})}
+return E.textContent=a&&!a.active?'Cuenta desactivada. Contacta al administrador.':'Usuario o contraseña incorrectos.'}
+start(u)}
+function start(u,resume){const a=ACC[u];auth={user:u,name:a.name,role:a.role};role=a.role;me=a.name;sessionStorage.setItem('mss_s',u);tab=ROLES[role][1].split(',')[0];
+$('#gate').hidden=true;$('#who').textContent=a.name+' · '+ROLES[role][0];
+if(!resume){aud('sesion.inicio','auth',u,'','');DB.doc('accounts/'+u).update({fails:0,lock:0,last:new Date().toISOString()}).catch(()=>{})}
+if(role==='adm')subAud();render();if(a.must)chgPw(true)}
+async function boot_(){const u=$('#g-u').value.trim().toLowerCase(),n=$('#g-n').value.trim(),p=$('#g-p').value,E=$('#g-e');
+if(!/^[a-z0-9._-]{3,30}$/.test(u)||!n||p.length<8)return E.textContent='Usuario (3-30: letras, números . _ -), nombre y contraseña de 8+ caracteres.';
+const salt=rnd(),a={user:u,name:n,role:'adm',salt,hash:await hp(p,salt),active:true,must:false,at:new Date().toISOString(),by:u};
+await DB.doc('accounts/'+u).set(a);ACC[u]=a;start(u);aud('cuenta.crear','cuenta',u,'',{...a,salt:'',hash:''});save()}
+function chgPw(f){form(f?'Debes cambiar tu contraseña temporal':'Cambiar contraseña',[['pwo','Contraseña actual'],['pwn','Nueva contraseña (8+ caracteres)'],['pwr','Repetir nueva contraseña']],{},async o=>{const a=ACC[auth.user];if(o.pwn.length<8||o.pwn!==o.pwr||await hp(o.pwo,a.salt)!==a.hash)return alert('Revisa los datos: contraseña actual correcta, nueva de 8+ caracteres e igual en ambos campos.');const salt=rnd();await DB.doc('accounts/'+auth.user).set({...a,salt,hash:await hp(o.pwn,salt),must:false}).catch(werr);aud('cuenta.contraseña_cambiada','cuenta',auth.user,'','')})}
+$('#pw').onclick=()=>auth&&chgPw();
+$('#out').onclick=()=>{if(!auth)return;aud('sesion.cierre','auth',auth.user,'','');auth=null;sessionStorage.removeItem('mss_s');$('#who').textContent='';gate(Object.keys(ACC).length?'login':'boot')};
+function vUsr(){return `<div class="row"><span class="grow" style="color:var(--mut)">Las cuentas no se eliminan, se desactivan, para conservar la trazabilidad.</span><button class="b" data-nu>Nuevo usuario</button></div><div class="tw"><table><thead><tr><th>Usuario</th><th>Nombre</th><th>Perfil</th><th>Estado</th><th>Último acceso</th><th></th></tr></thead><tbody>${Object.values(ACC).sort((a,b)=>a.user<b.user?-1:1).map(a=>`<tr><td><b>${e(a.user)}</b></td><td>${e(a.name)}</td><td>${ROLES[a.role]?ROLES[a.role][0]:e(a.role)}</td><td class="${a.active?'ok':'bad'}"><b>${a.active?(a.lock>Date.now()?'Bloqueada':'Activa'):'Inactiva'}</b></td><td>${a.last?new Date(a.last).toLocaleString():'—'}</td><td style="white-space:nowrap"><button class="b s m" data-eu="${a.user}">Editar</button> <button class="b s m" data-ru="${a.user}">Restablecer contraseña</button></td></tr>`).join('')}</tbody></table></div>`}
+const RF=Object.keys(ROLES).map(k=>[k,ROLES[k][0]]);
+function subAud(){if(subAud.d)return;subAud.d=1;DB.collection('audit').orderBy('ts','desc').limit(1000).onSnapshot(q=>{AUD=q.docs.map(x=>x.data());if(auth&&tab==='aud'&&!busy())render()},()=>{})}
+function vAud(){const L=AUD.filter(x=>!af||JSON.stringify(x).toLowerCase().includes(af.toLowerCase())).slice(0,300);
+return `<div class="row"><input data-af placeholder="Filtrar (usuario, acción, registro…)" value="${e(af)}" style="width:280px"><button class="b" data-vi>Verificar integridad</button><span class="grow"></span><span style="color:var(--mut)">${AUD.length} eventos cargados · se muestran los 300 más recientes</span></div>${audMsg?`<div class="card">${audMsg}</div>`:''}<div class="tw"><table><thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Acción</th><th>Registro</th><th>Antes → Después</th></tr></thead><tbody>${L.map(x=>`<tr><td style="white-space:nowrap">${new Date(x.ts).toLocaleString()}</td><td><b>${e(x.user)}</b><small style="display:block;color:var(--mut)">${e(ROLES[x.role]?ROLES[x.role][0]:x.role)}</small></td><td>${e(x.act)}</td><td>${e(x.ent)} · ${e(x.key)}</td><td style="font-size:12px;max-width:380px;word-break:break-word">${e(x.before).slice(0,160)||'—'} → ${e(x.after).slice(0,160)||'—'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Sin eventos.</td></tr>'}</tbody></table></div>`}
+async function verAud(){const g={};AUD.forEach(x=>(g[x.user]=g[x.user]||[]).push(x));let ok=0;const bad=[];
+for(const u in g){const L=g[u].sort((a,b)=>a.seq-b.seq);for(let i=0;i<L.length;i++){const x=L[i],h=await sha([x.prev,x.seq,x.ts,x.user,x.act,x.ent,x.key,x.before,x.after].join('|'));if(h!==x.hash||(i&&(x.prev!==L[i-1].hash||x.seq!==L[i-1].seq+1)))bad.push(u+' #'+x.seq);else ok++}}
+audMsg=bad.length?`<b class="bad">Se detectaron ${bad.length} inconsistencias:</b> ${e(bad.slice(0,20).join(', '))}`:`<b class="ok">Integridad correcta:</b> ${ok} eventos verificados en ${Object.keys(g).length} cadenas.`;render()}
+document.addEventListener('change',ev=>{if(ev.target.dataset.af!==undefined){af=ev.target.value;render()}});
+document.addEventListener('click',ev=>{const t=ev.target.closest('button');if(!t||!auth)return;const d=t.dataset;
+if(d.vi!==undefined)verAud();
+if(d.nu!==undefined)form('Nuevo usuario',[['user','Usuario'],['name','Nombre completo'],['role','Perfil',RF],['pwn','Contraseña temporal (8+ caracteres)']],{role:'ops'},async o=>{const u=o.user.trim().toLowerCase();if(!/^[a-z0-9._-]{3,30}$/.test(u)||!o.name.trim()||o.pwn.length<8||ACC[u])return alert('Datos inválidos, contraseña corta o usuario ya existente.');const salt=rnd(),a={user:u,name:o.name.trim(),role:o.role,salt,hash:await hp(o.pwn,salt),active:true,must:true,at:new Date().toISOString(),by:auth.user};await DB.doc('accounts/'+u).set(a).catch(werr);aud('cuenta.crear','cuenta',u,'',{...a,salt:'',hash:''})});
+if(d.eu){const a=ACC[d.eu];form('Editar usuario '+a.user,[['name','Nombre completo'],['role','Perfil',RF],['active','Estado',[['1','Activa'],['0','Inactiva']]]],{name:a.name,role:a.role,active:a.active?'1':'0'},o=>{const n={...a,name:o.name.trim()||a.name,role:o.role,active:o.active==='1'};if(a.user===auth.user&&(!n.active||n.role!=='adm'))return alert('No puedes desactivarte ni quitarte el perfil de administrador.');DB.doc('accounts/'+a.user).set(n).catch(werr);aud('cuenta.editar','cuenta',a.user,{...a,salt:'',hash:''},{...n,salt:'',hash:''})})}
+if(d.ru){const a=ACC[d.ru];form('Restablecer contraseña de '+a.user,[['pwn','Nueva contraseña temporal (8+ caracteres)']],{},async o=>{if(o.pwn.length<8)return alert('Mínimo 8 caracteres.');const salt=rnd();await DB.doc('accounts/'+a.user).set({...a,salt,hash:await hp(o.pwn,salt),must:true,fails:0,lock:0}).catch(werr);aud('cuenta.contraseña_restablecida','cuenta',a.user,'','')})}});
+
+/* ===== INICIALIZACIÓN CON FIREBASE ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyAMTIou5HC2oepyxPNdGcwGIzjiVrOiTXo",
+  authDomain: "mss-linares.firebaseapp.com",
+  projectId: "mss-linares",
+  storageBucket: "mss-linares.firebasestorage.app",
+  messagingSenderId: "382925133056",
+  appId: "1:382925133056:web:574254eeb37ffc2abbcfe5",
+  measurementId: "G-DZ9MTT882T"
+};
+
+async function init(){
+  const t=setTimeout(()=>{if(gateMode==='load')gate('Sin conexión a Firebase. Revisa tu archivo HTML y configuración.')},10000);
+  try {
+    firebase.initializeApp(firebaseConfig);
+    DB = firebase.firestore();
+    canE = true; // Permite al primer usuario crear la cuenta admin
+    UID = ''; // No se requiere UID de Claude
+    
+    const a0 = await DB.collection('accounts').get();
+    if(!a0.empty){S.recs={};S.devs=[]}
+    
+    DB.collection('accounts').onSnapshot(q=>{ACC={};q.docs.forEach(x=>ACC[x.id]=x.data());clearTimeout(t);if(!auth){const u=sessionStorage.getItem('mss_s');if(u&&ACC[u]&&ACC[u].active&&!ACC[u].must)start(u,1);else gate(q.empty?'boot':'login')}else if(tab==='usr')rr()},()=>gate('No se pudo leer la base de datos de Firebase.'));
+    DB.doc('cfg/main').onSnapshot(d=>{if(!d.exists)return;const x=d.data(),s=JSON.stringify({tasks:x.tasks,plans:x.plans});if(s!==snap.cfg){snap.cfg=s;S.tasks=x.tasks||[];S.plans=x.plans||[];rr()}});
+    DB.collection('recs').onSnapshot(q=>{q.docChanges().forEach(c=>{const d=c.doc.data();if(c.type==='removed'){delete S.recs[d.k];delete snap.recs[d.k]}else{S.recs[d.k]=d.r;snap.recs[d.k]=JSON.stringify(d.r)}});rr()});
+    DB.collection('devs').onSnapshot(q=>{q.docs.forEach(x=>{snap.devs[x.id]=JSON.stringify(x.data())});q.docChanges().forEach(c=>{if(c.type==='removed')delete snap.devs[c.doc.id]});S.devs=q.docs.map(x=>x.data()).sort((a,b)=>+b.id.slice(1)-+a.id.slice(1));rr()})
+  } catch(x) {
+    clearTimeout(t);
+    gate('Error al conectar con Firebase: '+(x&&x.message||x))
+  }
+}
+
+gate('load');init();
+render();
+</script>
+</body>
+</html>
